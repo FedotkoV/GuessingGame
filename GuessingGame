@@ -1,0 +1,170 @@
+/** This is a game where user try to guess the number between 0 and 100, which is imagined by pc.
+ *  When user guessed the number they change and now pc tries to guess the number wich is imagined by the user.
+ *  The game works if the target platform is JS
+ */
+
+/**
+ * keeps constants of the game
+ */
+interface GameParameters {
+    // min and max are variables which sets diapason for guessing number
+    val min: Int
+        get() = 0
+
+    val max: Int
+        get() = 100
+
+    val signForNewGame: String // keeps sign which need to type for starting new game
+        get() = "y"
+
+    val pc: Player // uses as "computer" that will play with a user
+        get() = Player()
+
+    val user: User
+        get() = User()
+
+}
+fun main() {
+    GuessingGame().startTheGame()
+}
+/**
+ *  all plaing actions are here
+ *  at the beginning the user should to guess the number.
+ *  When the user guessed the number becomes turns for pc to guess.
+ *  And at the end the user gets invitation to play again
+ */
+class GuessingGame: GameParameters {
+    fun startTheGame() {
+        val hiddenNum = pc.hideNum(min, max) // stores a hidden number
+        DialogMenu().showMessage("main rules") // shows the rules for guessing
+        user.guessHiddenNum(hiddenNum)
+        user.hideNum()
+        pc.guessHiddenNum(min, max)
+
+        // statements for starting new game
+        val playAgain = js("prompt(\"If you want to play again type in 'y' or press enter to exit\")")
+        if (playAgain == signForNewGame)
+            startTheGame()
+    }
+}
+
+/**
+ * Describes abilities of a player, such a hide some number in the set diapason
+ * and find hidden number, such a clever human ^_^
+ * class uses for player pc
+ */
+open class Player: GameParameters {
+    // generates random number between min and max constants
+    fun  hideNum(min: Int, max: Int): Int {
+        return (min..max).random()
+    }
+
+    // algorithm for finding hidden num with decrease diapason of search at every stage
+    fun guessHiddenNum(min: Int, max: Int) {
+        // vars above stores new min and max diapason for search at every stage of loop
+        var minForGuess = min
+        var maxForGuess = max
+
+        // loop for guessing, stop while happen some confuse with diapason or while num is found
+        while (true) {
+            /* statement for breaking loop while minForGuess goes out of max or maxForGuess goes out of min
+            example: min = 0, maxForGuess = -1 or max = 100, minForGuess = 101
+            */
+            if (minForGuess > max || maxForGuess < min) {
+                DialogMenu().showMessage("out of diapason")
+                break
+            } // statement for breaking loop while minForGuess becomes bigger than maxForGuess
+            else if (minForGuess > maxForGuess) {
+                DialogMenu().showMessage("out of diapason")
+                break
+            }
+
+            // stores pc`s guess
+            val pcGuessIs = hideNum(minForGuess, maxForGuess)
+            //stores message with pc`s guess
+            val theNum: String = pcGuessIs.toString() + " Is your num?"
+            // shows pc`s guess and give opportunity for user to compare the guess with his hidden num
+            val answer = js("prompt(theNum)")!!
+
+            if (answer == "=") {
+                DialogMenu().showMessage("num is guessed")
+                break
+            }
+            else if (answer == ">") {
+                minForGuess = pcGuessIs + 1
+            }
+            else if (answer == "<") {
+                maxForGuess = pcGuessIs - 1
+            }
+            else {
+                if (minForGuess == maxForGuess) { // statement when left one num but it`s not the hidden num
+                    DialogMenu().showMessage("one number")
+                    break
+                }// statement for entered any signs or letters
+                DialogMenu().showMessage("ask to read rules")
+                DialogMenu().showMessage("rules for answer")
+            }
+        }
+    }
+}
+
+/**
+ * Implements Player class as user is a player. Has same functions, but has different implementation
+ */
+class User: Player() {
+
+    // just shows messages with rules  (user hides num in itself memory)
+    fun hideNum() {
+        DialogMenu().showMessage("ask to read rules")
+        DialogMenu().showMessage("rules for answer")
+    }
+    // guessing statements
+    fun guessHiddenNum(hiddenNum: Int) {
+        // stores user`s guess and shows hint what should to do
+        val guessIs = js("prompt(\"Type in your guess as integer\")")
+
+        //statement for empty field
+        if (guessIs == "") {
+            DialogMenu().showMessage("only digits")
+            guessHiddenNum(hiddenNum)
+        }
+
+        // statements above compare user`s guess and hidden num and does some simple actions
+        else if (guessIs == hiddenNum) {
+            DialogMenu().showMessage("correct")
+        }
+        else if (guessIs < hiddenNum) {
+            DialogMenu().showMessage(">")
+            guessHiddenNum(hiddenNum)
+        }
+        else if (guessIs > hiddenNum) {
+            DialogMenu().showMessage("<")
+            guessHiddenNum(hiddenNum)
+        }
+        else {
+            DialogMenu().showMessage("only digits")
+            guessHiddenNum(hiddenNum)
+        }
+    }
+}
+
+/**
+ * stores messages for every situation at the game and shows them when it needs
+ */
+class DialogMenu {
+    fun showMessage(key: String) {
+        // gets String with describing a type of needed message and calls alert method to show the message
+        when (key) {
+            "main rules" -> js("alert(\"You should to guess the number between 0 and 100\")")
+            "num is guessed" -> js("alert(\"I guessed!\")")
+            "ask to read rules" -> js("alert(\"Please, read the rules at next message\")")
+            "rules for answer" -> js("alert(\"Type in > or < when number in console is bigger or less than yours, type in = if I guessed \")")
+            "correct" -> js("alert(\"Correct!\")")
+            "only digits" -> js("alert(\"Please, use only digits\")")
+            ">" -> js("alert(\"The number is bigger, try again\")")
+            "<" -> js("alert(\"The number is less, try again\")")
+            "out of diapason" -> js("alert(\"You`ve made me out of the diapason\")")
+            "one number" -> js("alert(\"There is no number between one number \")")
+        }
+    }
+}
